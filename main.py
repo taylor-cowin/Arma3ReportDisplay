@@ -104,34 +104,38 @@ def check_for_rpt_file():
             
 def print_log_lines():
     global current_logfile
-    file_handler = None
+    log_full_path = None
     
     def _check_new_file():
         global file_updated
-        global file_handler
+
         if file_updated is True:
             print('Newest .rpt file found: ' + str(current_logfile))
-            file_handler = open(str(current_logfile), 'r')
             file_updated = False
             print_log_lines()            
     
-    def _get_last_line(file_path):
-        global file_handler
-        ##NEED TO MOVE THIS AROUND - NEED TO ONLY WHEN FILE CHANGES
-        last_line = deque(file_handler, maxlen=1).pop().strip()
+    def _get_last_line(file_handler):
+        last_line = deque(file_handler, maxlen=2)[0]
         return last_line
     
-    def _print_loop():
+    def _print_loop(log_full_path):
         global last_line_printed
+        
         _check_new_file() #Make sure we're using the latest logfile
-        this_line = _get_last_line(log_full_path)
-        if this_line != last_line_printed:
+        file_handler = open(str(log_full_path), 'r')
+        this_line = _get_last_line(file_handler)
+              
+        if this_line != last_line_printed or last_line_printed is None:
             print(this_line)
             last_line_printed = this_line
+            
+        time.sleep(.1)
+        _print_loop(log_full_path)
+    
     #If a log file exists, set the path   
     if current_logfile != None:
         log_full_path = str(report_dir) + '\\' + current_logfile
-        _print_loop()
+        _print_loop(log_full_path)
     #If no log file exists, keep checking
     else:
         time.sleep(.1)
