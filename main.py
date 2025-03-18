@@ -4,8 +4,10 @@ import os
 import threading
 import re
 import time
+import datetime
 
 current_logfile = None
+file_updated = False
 
 def get_report_dir():
     home_path = Path.home()
@@ -23,38 +25,46 @@ def set_current_logfile(file):
     global current_logfile
     current_logfile = file
 
-#def compare_timestamps(stamp1, stamp2):
-
-
-
-
-
+def compare_timestamps(old_stamp, new_stamp):
+    old_date = parse_datetime(old_stamp)
+    new_date = parse_datetime(new_stamp)
+    return old_date < new_date #return true if old date is older
+    
+def parse_datetime(stamp):
+    def _get_year(stamp):
+        return int(stamp[0:4])
+    def _get_month(stamp):
+        return int(stamp[5:7])
+    def _get_day(stamp):
+        return int(stamp[8:10])
+    def _get_hour(stamp):
+        return int(stamp[11:13])
+    def _get_minute(stamp):
+        return int(stamp[14:16])
+    def _get_second(stamp):
+        return int(stamp[17:19])
+    return datetime.datetime(_get_year(stamp), _get_month(stamp), _get_day(stamp), _get_hour(stamp), _get_minute(stamp), _get_second(stamp))
+    
 def get_timestamp(file):
-
-    ###LEFT OFF HERE
-
     dirty_timestamp = re.search(r"[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}.rpt", file) #get the end of the filename
-    print(dirty_timestamp.group().)
     clean_timestamp = str(dirty_timestamp.group()).split('.')[0] #remove the .rpt
     return clean_timestamp
 
-    ### LEFT OFF HERE
-
-
 def parse_report_timestamp(file):
     global current_logfile
-
+    global file_updated
     if current_logfile is None:
         current_logfile = file
+        file_updated = True
         check_for_rpt_file() #Initialized, so start the loop again in case there are more
     else:
-        old_file = get_timestamp(current_logfile)
+        old_file = get_timestamp(current_logfile) #inefficient -- should store the timestamp alongside the file to prevent constant matching
         new_file = get_timestamp(file)
-
         #Returns true if file is newer
-        #if compare_timestamps(old_file, new_file):
-         #   current_logfile = file
-        #    print("Newer file detected: " + str(current_logfile))
+        if old_file != new_file:
+            if compare_timestamps(old_file, new_file):
+                current_logfile = file
+                file_updated = True
 
 def check_for_rpt(file):
     if re.search(r".rpt", file):
@@ -62,6 +72,7 @@ def check_for_rpt(file):
     return False
 
 def check_for_rpt_file():
+    global file_updated
     files = os.listdir(report_dir)
     report_list = []
     #Make a list of all reports
@@ -73,6 +84,9 @@ def check_for_rpt_file():
     else:
         for rpt in report_list:
             parse_report_timestamp(rpt)
+    if file_updated is True:
+        print('Newest .rpt file found: ' + str(current_logfile))
+        file_updated = False
     time.sleep(10)
     check_for_rpt_file()
             #check list of files every X seconds
