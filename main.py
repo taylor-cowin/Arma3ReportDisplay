@@ -1,5 +1,7 @@
 from pathlib import Path
 from pathlib import WindowsPath
+from collections import deque
+
 import os
 import threading
 import re
@@ -8,6 +10,7 @@ import datetime
 
 current_logfile = None
 file_updated = False
+last_line_printed = None
 
 def get_report_dir():
     home_path = Path.home()
@@ -84,16 +87,43 @@ def check_for_rpt_file():
     else:
         for rpt in report_list:
             parse_report_timestamp(rpt)
-    if file_updated is True:
-        print('Newest .rpt file found: ' + str(current_logfile))
-        file_updated = False
     time.sleep(10)
     check_for_rpt_file()
-            #check list of files every X seconds
-            #if new file, switch to it
-#def print_log_lines():
-        #print last line of file unless it has already been printed - check every 15ms     
-
+            
+def print_log_lines():
+    global current_logfile
+    file_handler = None
+    
+    def _check_new_file():
+        global file_updated
+        global file_handler
+        if file_updated is True:
+            print('Newest .rpt file found: ' + str(current_logfile))
+            file_handler = open(str(current_logfile), 'r')
+            file_updated = False
+            print_log_lines()            
+    
+    def _get_last_line(file_path):
+        global file_handler
+        ##NEED TO MOVE THIS AROUND - NEED TO ONLY WHEN FILE CHANGES
+        last_line = deque(file_handler, maxlen=1).pop().strip()
+        return last_line
+    
+    def _print_loop():
+        global last_line_printed
+        _check_new_file() #Make sure we're using the latest logfile
+        this_line = _get_last_line(log_full_path)
+        if this_line != last_line_printed:
+            print(this_line)
+            last_line_printed = this_line
+        
+    if current_logfile != None:
+        log_full_path = str(get_report_dir()) + '\\' + current_logfile
+        _print_loop()
+    else: #Keep checking until there's a file
+        time.sleep(.1)
+        print_log_lines()
+        
 def handle_error(e):
     input('Unable to proceed: ' + str(e))
     quit()
@@ -102,12 +132,12 @@ if __name__ == '__main__':
     report_dir = get_report_dir()
     
     check_thread = threading.Thread(group=None, target=check_for_rpt_file)
-#    parse_thread = threading.Thread(print_log_lines,1)
+    parse_thread = threading.Thread(group=None, target=print_log_lines)
     
     check_thread.start()    
-#    parse_thread.start()
+    parse_thread.start()
     
     check_thread.join()
-#    parse_thread.join()
+    parse_thread.join()
 
     print('Execution complete. Program will now exit.')
