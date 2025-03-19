@@ -13,6 +13,7 @@ file_updated = False
 last_line_printed = None
 report_dir = None
 file_check_rate = 10 #How often (in seconds) to check for a new rpt file
+recursion = 0
 
 def set_report_dir():
     global report_dir
@@ -104,6 +105,9 @@ def check_for_rpt_file():
             
 def print_log_lines():
     global current_logfile
+    global recursion
+    recursion = 0
+    
     log_full_path = None
     
     def _check_new_file():
@@ -120,6 +124,8 @@ def print_log_lines():
     
     def _print_loop(log_full_path):
         global last_line_printed
+        global recursion
+        this_line = None
         
         _check_new_file() #Make sure we're using the latest logfile
         file_handler = open(str(log_full_path), 'r')
@@ -128,10 +134,13 @@ def print_log_lines():
         if this_line != last_line_printed or last_line_printed is None:
             print(this_line)
             last_line_printed = this_line
-            
+
         time.sleep(.1)
-        _print_loop(log_full_path)
-    
+        recursion+= 1
+        if recursion < 900:
+            _print_loop(log_full_path)
+        else:
+            print_log_lines()
     #If a log file exists, set the path   
     if current_logfile != None:
         log_full_path = str(report_dir) + '\\' + current_logfile
