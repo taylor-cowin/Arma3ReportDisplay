@@ -1,6 +1,7 @@
 from pathlib import Path
 from pathlib import WindowsPath
 from collections import deque
+from multiprocessing import Process
 
 import os
 import threading
@@ -13,7 +14,6 @@ file_updated = False
 last_line_printed = None
 report_dir = None
 file_check_rate = 10 #How often (in seconds) to check for a new rpt file
-recursion = 0
 
 def set_report_dir():
     global report_dir
@@ -106,17 +106,19 @@ def check_for_rpt_file():
 def print_log_lines():
     global current_logfile
     global recursion
-    recursion = 0
     
     log_full_path = None
     
+    def _set_new_file():
+        
+
     def _check_new_file():
         global file_updated
 
         if file_updated is True:
             print('Newest .rpt file found: ' + str(current_logfile))
             file_updated = False
-            print_log_lines()            
+            _set_new_file()            
     
     def _get_last_line(file_handler):
         last_line = deque(file_handler, maxlen=2)[0]
@@ -124,31 +126,31 @@ def print_log_lines():
     
     def _print_loop(log_full_path):
         global last_line_printed
-        global recursion
-        this_line = None
-        
-        _check_new_file() #Make sure we're using the latest logfile
-        file_handler = open(str(log_full_path), 'r')
-        this_line = _get_last_line(file_handler)
-              
-        if this_line != last_line_printed or last_line_printed is None:
-            print(this_line)
-            last_line_printed = this_line
+        while 1:
+            file_unchanged = True
+            file_handler = open(str(log_full_path), 'r')
 
-        time.sleep(.1)
-        recursion+= 1
-        if recursion < 900:
-            _print_loop(log_full_path)
-        else:
-            print_log_lines()
-    #If a log file exists, set the path   
-    if current_logfile != None:
-        log_full_path = str(report_dir) + '\\' + current_logfile
-        _print_loop(log_full_path)
-    #If no log file exists, keep checking
-    else:
-        time.sleep(.1)
-        print_log_lines()
+            while file_unchanged is True:
+                if file_updated is True:     
+                    file_unchanged = False
+                else:
+                    _check_new_file() #Make _sure we're using the latest logfile
+                    this_line = _get_last_line(file_handler)
+                    
+                if this_line != last_line_printed or last_line_printed is None:
+                    print(this_line)
+                    last_line_printed = this_line
+                time.sleep(.1)
+  ###### LEFT OFF HERE -- REBUILDING LOGIC WITH LOOPS INSTEAD OF RECURSION              else:
+                    print_log_lines()
+            #If a log file exists, set the path   
+            if current_logfile != None:
+                log_full_path = str(report_dir) + '\\' + current_logfile
+                _print_loop(log_full_path)
+            #If no log file exists, keep checking
+            else:
+                time.sleep(.1)
+                print_log_lines()
         
 def handle_error(e):
     input('Unable to proceed: ' + str(e))
