@@ -117,6 +117,7 @@ def print_log_lines():
             print('Newest .rpt file found: ' + str(current_logfile))
             file_updated = False
             _set_new_file()
+            return True
     
     def _get_last_line(file_handler):
         last_line = deque(file_handler, maxlen=2)[0]
@@ -124,28 +125,26 @@ def print_log_lines():
     
     def _print_loop(log_full_path):
         global last_line_printed
-        
-        while 1:
-            file_unchanged = True
-            file_handler = open(str(log_full_path), 'r')
+    
+        file_handler = open(str(log_full_path), 'r')
 
-            while file_unchanged is True:
-                if file_updated is True:     
-                    file_unchanged = False
-                else:
-                    _check_new_file() #Make _sure we're using the latest logfile
-                    this_line = _get_last_line(file_handler)
+        while 1:
+            if _check_new_file() is True:
+                break
+            else:
+                this_line = _get_last_line(file_handler)
                     
                 if this_line != last_line_printed or last_line_printed is None:
                     print(this_line)
                     last_line_printed = this_line
                 time.sleep(.1)
-  ###### LEFT OFF HERE -- REBUILDING LOGIC WITH LOOPS INSTEAD OF RECURSION              else:
-                    print_log_lines()
-            #If a log file exists, set the path   
-            if current_logfile != None:
-                log_full_path = str(report_dir) + '\\' + current_logfile
-                _print_loop(log_full_path)
+    while 1:        
+    #If a log file exists, set the path   
+    if current_logfile != None:
+        
+       ### REWORK THIS LOGIC TO ACCOMODATE NEW LOOP 
+        log_full_path = str(report_dir) + '\\' + current_logfile
+            _print_loop(log_full_path)
             #If no log file exists, keep checking
             else:
                 time.sleep(.1)
