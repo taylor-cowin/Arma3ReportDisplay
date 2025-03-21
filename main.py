@@ -32,6 +32,7 @@ def set_report_dir():
 def check_for_rpt_file():
     global file_updated
     global file_check_rate
+        
     def _compare_timestamps(old_stamp, new_stamp):
         old_date = _parse_datetime(old_stamp)
         new_date = _parse_datetime(new_stamp)
@@ -60,12 +61,10 @@ def check_for_rpt_file():
     def _parse_report_timestamp(file):
         global current_logfile
         global file_updated
-
         #First run
         if current_logfile is None:
             _set_current_logfile(file)
-            file_updated = True
-            check_for_rpt_file() #Just set the first file, so start the loop again in case there are more
+            file_updated = True    
         #Subsequent runs
         else:
             old_file = _get_timestamp(current_logfile) #inefficient -- should store the timestamp alongside the file to prevent constant matching
@@ -84,41 +83,40 @@ def check_for_rpt_file():
         if re.search(r".rpt", file):
             return True
         return False
-    
-    files = os.listdir(report_dir)
-    report_list = []
-    #Make a list of all reports
-    for file in files:
-        #Add to list if it is an '*.rpt' file
-        if _check_for_rpt_ext(file):
-            report_list.append(file)
-    #If no report files are found
-    if report_list == []:
-        handle_error("No .rpt files found at " + str(report_dir))
-    #Report files were found, so check timestamp for each to see if it is the most recent
-    else:
-        for rpt in report_list:
-            _parse_report_timestamp(rpt)
-    #Check for new log files every 10 seconds
-    time.sleep(file_check_rate)
-    check_for_rpt_file()
-            
+    while 1:
+        files = os.listdir(report_dir)
+        report_list = []
+        #Make a list of all reports
+        for file in files:
+            #Add to list if it is an '*.rpt' file
+            if _check_for_rpt_ext(file):
+                report_list.append(file)
+        #If no report files are found
+        if report_list == []:
+            handle_error("No .rpt files found at " + str(report_dir))
+        #Report files were found, so check timestamp for each to see if it is the most recent
+        else:
+            for rpt in report_list:
+                _parse_report_timestamp(rpt)
+        #Check for new log files every 10 seconds
+        time.sleep(file_check_rate)
+                
 def print_log_lines():
     global current_logfile
-    global recursion
-    
+    global report_dir
+
     log_full_path = None
     
     def _set_new_file():
-        
+        global log_full_path
+        log_full_path = str(report_dir + '//' + current_logfile)
 
     def _check_new_file():
         global file_updated
-
         if file_updated is True:
             print('Newest .rpt file found: ' + str(current_logfile))
             file_updated = False
-            _set_new_file()            
+            _set_new_file()
     
     def _get_last_line(file_handler):
         last_line = deque(file_handler, maxlen=2)[0]
@@ -126,6 +124,7 @@ def print_log_lines():
     
     def _print_loop(log_full_path):
         global last_line_printed
+        
         while 1:
             file_unchanged = True
             file_handler = open(str(log_full_path), 'r')
