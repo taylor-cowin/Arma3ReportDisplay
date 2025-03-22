@@ -109,7 +109,7 @@ def print_log_lines():
     
     def _set_new_file():
         global log_full_path
-        log_full_path = str(report_dir + '//' + current_logfile)
+        log_full_path = str(report_dir) + '//' + current_logfile
 
     def _check_new_file():
         global file_updated
@@ -140,15 +140,12 @@ def print_log_lines():
                 time.sleep(.1)
     while 1:        
     #If a log file exists, set the path   
-    if current_logfile != None:
-        
-       ### REWORK THIS LOGIC TO ACCOMODATE NEW LOOP 
-        log_full_path = str(report_dir) + '\\' + current_logfile
+        if current_logfile != None:
+            log_full_path = str(report_dir) + '\\' + current_logfile
             _print_loop(log_full_path)
             #If no log file exists, keep checking
-            else:
-                time.sleep(.1)
-                print_log_lines()
+        else:
+            time.sleep(.1)
         
 def handle_error(e):
     input('Unable to proceed: ' + str(e))
