@@ -14,7 +14,6 @@ file_updated = False
 last_line_printed = None
 report_dir = None
 file_check_rate = 10 #How often (in seconds) to check for a new rpt file
-file_handler = None
 
 def set_report_dir():
     global report_dir
@@ -62,6 +61,7 @@ def check_for_rpt_file():
     def _parse_report_timestamp(file):
         global current_logfile
         global file_updated
+        
         #First run
         if current_logfile is None:
             _set_current_logfile(file)
@@ -111,43 +111,42 @@ def print_log_lines():
     def _set_new_file():
         global log_full_path
         log_full_path = str(report_dir) + '//' + current_logfile
+        return log_full_path
 
     def _check_new_file():
         global file_updated
-        global file_handler
+        
         if file_updated is True:
             print('Newest .rpt file found: ' + str(current_logfile))
             _set_new_file()
             file_updated = False
             return True
     
-    def _get_last_line():
-        global file_handler
-        
-        last_line = deque(file_handler, 1)
-        print("Got a valid last line!")
+    def _get_last_line(file):
+        file.seek(0, os.SEEK_END)  # Move the file pointer to the end of the file
+        file.seek(file.tell() - 2, os.SEEK_SET)  # Move back to ensure we are not at EOF
+        last_line = None
+        while file.read(1) != b'\n':  # Find the last newline
+            file.seek(file.tell() - 2, os.SEEK_SET)
+        last_line = file.readline()
         return last_line
 
-    def _print_loop(log_full_path):
+    def _print_loop(file_handler):
         global last_line_printed
-        global file_handler
-        
-        file_handler = open(str(log_full_path), 'r')
         while 1:
-            print('Last line: ' + str(last_line_printed))
             if _check_new_file() is True:
                 break
             else:
-                this_line = _get_last_line()
+                this_line = _get_last_line(file_handler)
                 if str(this_line) != str(last_line_printed) or last_line_printed is None:
                     print(this_line)
                     last_line_printed = this_line
-                #time.sleep(.1)
+                time.sleep(.1)
     while 1:        
     #If a log file exists, set the path   
         if current_logfile != None:
-            log_full_path = str(report_dir) + '\\' + current_logfile
-            _print_loop(log_full_path)
+            file_handler = open(str(_set_new_file()), 'rb')
+            _print_loop(file_handler)
     #If no log file exists, keep checking every second
         else:
             time.sleep(1)
