@@ -128,7 +128,7 @@ def print_log_lines():
         last_line = None
         while file.read(1) != b'\n':  # Find the last newline
             file.seek(file.tell() - 2, os.SEEK_SET)
-        last_line = file.readline()
+        last_line = file.readline().decode('utf-8').strip()  # Read the last line
         return last_line
 
     def _print_loop(file_handler):
