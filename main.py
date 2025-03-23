@@ -14,6 +14,7 @@ file_updated = False
 last_line_printed = None
 report_dir = None
 file_check_rate = 10 #How often (in seconds) to check for a new rpt file
+file_handler = None
 
 def set_report_dir():
     global report_dir
@@ -104,7 +105,7 @@ def check_for_rpt_file():
 def print_log_lines():
     global current_logfile
     global report_dir
-
+    
     log_full_path = None
     
     def _set_new_file():
@@ -113,39 +114,43 @@ def print_log_lines():
 
     def _check_new_file():
         global file_updated
+        global file_handler
         if file_updated is True:
             print('Newest .rpt file found: ' + str(current_logfile))
-            file_updated = False
             _set_new_file()
+            file_updated = False
             return True
     
-    def _get_last_line(file_handler):
-        last_line = deque(file_handler, maxlen=2)[0]
+    def _get_last_line():
+        global file_handler
+        
+        last_line = deque(file_handler, 1)
+        print("Got a valid last line!")
         return last_line
-    
+
     def _print_loop(log_full_path):
         global last_line_printed
-    
+        global file_handler
+        
         file_handler = open(str(log_full_path), 'r')
-
         while 1:
+            print('Last line: ' + str(last_line_printed))
             if _check_new_file() is True:
                 break
             else:
-                this_line = _get_last_line(file_handler)
-                    
-                if this_line != last_line_printed or last_line_printed is None:
+                this_line = _get_last_line()
+                if str(this_line) != str(last_line_printed) or last_line_printed is None:
                     print(this_line)
                     last_line_printed = this_line
-                time.sleep(.1)
+                #time.sleep(.1)
     while 1:        
     #If a log file exists, set the path   
         if current_logfile != None:
             log_full_path = str(report_dir) + '\\' + current_logfile
             _print_loop(log_full_path)
-            #If no log file exists, keep checking
+    #If no log file exists, keep checking every second
         else:
-            time.sleep(.1)
+            time.sleep(1)
         
 def handle_error(e):
     input('Unable to proceed: ' + str(e))
